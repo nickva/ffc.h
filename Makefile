@@ -6,7 +6,7 @@ ifeq ($(UNAME_S),Linux)
     EXTRA_CFLAGS := -D_DEFAULT_SOURCE
 endif
 
-CLANG_FLAGS := -Wall -Wextra -Wpedantic -O3 -g -std=c99 $(EXTRA_CFLAGS)
+CLANG_FLAGS := -xc -Wall -Wextra -Wpedantic -O3 -g -std=c99 $(EXTRA_CFLAGS)
 
 out/test_runner: ffc.h test_src/test.c | out
 	gcc -m64 -Wall -Wextra -Wpedantic ffc.h -fsyntax-only
@@ -24,7 +24,7 @@ ffc.h: src/ffc.h src/common.h src/parse.h src/digit_comparison.h src/api.h src/b
 	python3 amalgamate.py > ffc.h
 
 out/example: ffc.h example.c | out
-	clang -Wall -Wformat -Wpedantic -std=c99 example.c -o out/example
+	clang -xc -Wall -Wformat -Wpedantic -std=c99 example.c -o out/example
 
 example: out/example
 	./out/example
