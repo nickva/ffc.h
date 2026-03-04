@@ -125,8 +125,5 @@ ffc_result ffc_parse_i64(size_t len, const char *input, int base, int64_t  *out)
 ffc_result ffc_parse_u64(size_t len, const char *input, int base, uint64_t *out);
 ffc_result ffc_parse_i32(size_t len, const char *input, int base, int32_t  *out);
 ffc_result ffc_parse_u32(size_t len, const char *input, int base, uint32_t *out);
-// TODO implement more integer overloads
-// ffc_result ffc_from_chars_long(const char *start, const char *end, long* out);
-// ffc_result ffc_from_chars_int(const char *start,  const char *end, int* out);
 
 #endif // FFC_API

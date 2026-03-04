@@ -30,8 +30,11 @@ int main(void) {
 For use within a larger parser, where you don't expect to reach the end of input, use
 the non-simple variants as the `ffc_result` includes the stopping point, just like in fast_float
 
+## TODO
+
+- [ ] Add the other integer overloads (exposing options)
+- [ ] Post benchmarks. We rely on constant folding, and resulting branch elimination, so must be careful
+
 ## Caveats
-- I have not benchmarked yet; we need to confirm that constant folding, and thus branch elimination, is occurring
-as intended for float/double paths and the 4 integer paths.
 - Does not support wide chars; only 1-byte strings (e.g., UTF8) are supported.
 - The 32-bit architecture code is untested
