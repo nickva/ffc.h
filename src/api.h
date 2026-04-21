@@ -141,4 +141,30 @@ uint64_t ffc_parse_u64_simple(size_t len, const char *input, int base, ffc_outco
 int32_t  ffc_parse_i32_simple(size_t len, const char *input, int base, ffc_outcome *outcome);
 uint32_t ffc_parse_u32_simple(size_t len, const char *input, int base, ffc_outcome *outcome);
 
+/**
+ * Parse a JSON number from the range [start, end) and return an int64_t or a double
+ *
+ * If the outcome is FCC_OUTCOME_OK
+ *  If kind == FFC_JSON_NUM_KIND_INT64, value will be an int64
+ *  If kind == FCC_JSON_NUM_DOUBLE, value will be a double
+ *
+ * The returned ffc_result's ptr points at the byte where parsing stopped
+ */
+
+typedef uint32_t ffc_json_number_kind;
+enum ffc_json_number_kind_bits {
+  FFC_JSON_NUM_KIND_INT64  = 0,
+  FFC_JSON_NUM_KIND_DOUBLE = 1,
+};
+
+typedef struct ffc_json_number {
+  ffc_json_number_kind kind;
+  union {
+    int64_t i64;
+    double  f64;
+  } value;
+} ffc_json_number;
+
+ffc_result ffc_parse_json_number(const char *start, const char *end, ffc_json_number *out);
+
 #endif // FFC_API

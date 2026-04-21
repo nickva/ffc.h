@@ -548,6 +548,149 @@ void double_json_mode(void) {
   }
 }
 
+void json_number_unified(void) {
+  // valid ints
+  struct int_case { const char *input; int64_t expected; };
+  const struct int_case int_ok[] = {
+    {"0",                    0},
+    {"-0",                   0},
+    {"1",                    1},
+    {"-1",                  -1},
+    {"123",                123},
+    {"12345678901234567",  12345678901234567LL},
+    {"-9223372036854775808", INT64_MIN},
+    {"9223372036854775807",  INT64_MAX},
+  };
+  for (size_t i = 0; i < sizeof(int_ok)/sizeof(*int_ok); i++) {
+    ffc_json_number nr = {0};
+    ffc_result r = ffc_parse_json_number(
+        int_ok[i].input,
+        int_ok[i].input + strlen(int_ok[i].input),
+        &nr
+    );
+    if (r.outcome != FFC_OUTCOME_OK) {
+      printf("\nFAIL json_number_unified \"%s\": outcome %s (expected ok)\n",
+             int_ok[i].input, get_outcome_name(r.outcome));
+      FAILS += 1;
+      continue;
+    }
+    if (nr.kind != FFC_JSON_NUM_KIND_INT64) {
+      printf("\nFAIL json_number_unified \"%s\": expected kind INT64, got DOUBLE\n",
+             int_ok[i].input);
+      FAILS += 1;
+      continue;
+    }
+    if (nr.value.i64 != int_ok[i].expected) {
+      printf("\nFAIL json_number_unified \"%s\": expected %lld, got %lld\n",
+             int_ok[i].input, (long long)int_ok[i].expected, (long long)nr.value.i64);
+      FAILS += 1;
+    }
+  }
+
+  // valid doubles
+  struct float_case { const char *input; double expected; };
+  const struct float_case double_ok[] = {
+    {"1.0",      1.0},
+    {"-1.5",    -1.5},
+    {"0.5",      0.5},
+    {"1e0",      1.0},
+    {"1E0",      1.0},
+    {"1e3",   1000.0},
+    {"1e+3",  1000.0},
+    {"1e-3",     0.001},
+    {"1.5e2",  150.0},
+    {"-1.5e-2", -0.015},
+  };
+  for (size_t i = 0; i < sizeof(double_ok)/sizeof(*double_ok); i++) {
+    ffc_json_number nr = {0};
+    ffc_result r = ffc_parse_json_number(
+        double_ok[i].input,
+        double_ok[i].input + strlen(double_ok[i].input),
+        &nr
+    );
+    if (r.outcome != FFC_OUTCOME_OK) {
+      printf("\nFAIL json_number_unified \"%s\": outcome %s (expected ok)\n",
+             double_ok[i].input, get_outcome_name(r.outcome));
+      FAILS += 1;
+      continue;
+    }
+    if (nr.kind != FFC_JSON_NUM_KIND_DOUBLE) {
+      printf("\nFAIL json_number_unified \"%s\": expected kind DOUBLE, got INT64\n",
+             double_ok[i].input);
+      FAILS += 1;
+      continue;
+    }
+    if (nr.value.f64 != double_ok[i].expected) {
+      printf("\nFAIL json_number_unified \"%s\": expected %g, got %g\n",
+             double_ok[i].input, double_ok[i].expected, nr.value.f64);
+      FAILS += 1;
+    }
+  }
+
+  // out of range outcomes with large int and double
+  {
+    const char *input = "99999999999999999999999999";
+    ffc_json_number nr = {0};
+    ffc_result r = ffc_parse_json_number(input, input + strlen(input), &nr);
+    if (r.outcome != FFC_OUTCOME_OUT_OF_RANGE || nr.kind != FFC_JSON_NUM_KIND_INT64) {
+      printf("\nFAIL json_number_unified big int \"%s\": outcome=%s kind=%d\n",
+             input, get_outcome_name(r.outcome), (int)nr.kind);
+      FAILS += 1;
+    }
+  }
+  {
+    const char *input = "1e400";
+    ffc_json_number nr = {0};
+    ffc_result r = ffc_parse_json_number(input, input + strlen(input), &nr);
+    if (r.outcome != FFC_OUTCOME_OUT_OF_RANGE || nr.kind != FFC_JSON_NUM_KIND_DOUBLE) {
+      printf("\nFAIL json_number_unified big double \"%s\": outcome=%s kind=%d\n",
+             input, get_outcome_name(r.outcome), (int)nr.kind);
+      FAILS += 1;
+    }
+  }
+
+  // json number invalid stuff
+  const char * const invalid[] = {
+    "",
+    "-",
+    ".5",
+    "1.",
+    "01",
+    "1e",
+    "1E",
+    "0.1e",
+    "0.1E",
+    "+1",
+  };
+  for (size_t i = 0; i < sizeof(invalid)/sizeof(*invalid); i++) {
+    ffc_json_number nr = {0};
+    ffc_result r = ffc_parse_json_number(
+        invalid[i],
+        invalid[i] + strlen(invalid[i]),
+        &nr
+    );
+    if (r.outcome != FFC_OUTCOME_INVALID_INPUT) {
+      printf("\nFAIL json_number_unified invalid \"%s\": outcome %s (expected invalid)\n",
+             invalid[i], get_outcome_name(r.outcome));
+      FAILS += 1;
+    }
+  }
+
+  // stop at first non-number, ptr should point to it
+  {
+    const char *input = "123}";
+    ffc_json_number nr = {0};
+    ffc_result r = ffc_parse_json_number(input, input + strlen(input), &nr);
+    if (r.outcome != FFC_OUTCOME_OK || nr.kind != FFC_JSON_NUM_KIND_INT64
+        || nr.value.i64 != 123 || r.ptr != input + 3) {
+      printf("\nFAIL json_number_unified \"123}\": outcome=%s kind=%d i64=%lld ptr_off=%ld\n",
+             get_outcome_name(r.outcome), (int)nr.kind,
+             (long long)nr.value.i64, (long)(r.ptr - input));
+      FAILS += 1;
+    }
+  }
+}
+
 int main(void) {
   // verify_float("1.1754942807573642917e-38", 0x1.fffffcp-127f);
   // exit(0);
@@ -574,6 +717,7 @@ int main(void) {
   double_parse_zero();
   double_parse_negative_zero();
   double_json_mode();
+  json_number_unified();
 
   float_special();
 
